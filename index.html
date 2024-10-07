@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Users CRUD</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div class="container mt-5">
+      <h1 class="mb-4">User Management</h1>
+
+      <!-- Form untuk menambah/ memperbarui user -->
+      <form id="userForm">
+        <div class="mb-3">
+          <label for="name" class="form-label">Name</label>
+          <input type="text" class="form-control" id="name" placeholder="Enter your name" required />
+        </div>
+        <div class="mb-3">
+          <label for="email" class="form-label">Email</label>
+          <input type="email" class="form-control" id="email" placeholder="Enter your email" required />
+        </div>
+        <div class="mb-3">
+          <label for="age" class="form-label">Age</label>
+          <input type="number" class="form-control" id="age" placeholder="Enter your age" required />
+        </div>
+        <input type="hidden" id="userId" />
+        <button type="submit" class="btn btn-primary" id="submitBtn">Add User</button>
+      </form>
+
+      <hr />
+
+      <!-- Daftar users -->
+      <h2>Users List</h2>
+      <table class="table table-striped" id="usersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Age</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <script>
+      // Fetch users from API
+      function fetchUsers() {
+        fetch("http://127.0.0.1:5000/users")
+          .then((response) => response.json())
+          .then((data) => {
+            const tableBody = document.querySelector("#usersTable tbody");
+            tableBody.innerHTML = "";
+            data.forEach((user) => {
+              tableBody.innerHTML += `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.age}</td>
+                        <td>
+                            <button class="btn btn-sm btn-warning" onclick="editUser(${user.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            });
+          })
+          .catch((error) => console.error("Error fetching users:", error));
+      }
+
+      // Add or update user
+      document.querySelector("#userForm").addEventListener("submit", function (e) {
+        e.preventDefault(); // Prevent form from reloading the page
+
+        const name = document.querySelector("#name").value;
+        const email = document.querySelector("#email").value;
+        const age = document.querySelector("#age").value;
+        const userId = document.querySelector("#userId").value;
+
+        const userData = { name, email, age };
+
+        // Determine if we are adding or updating
+        const method = userId ? "PUT" : "POST"; // Change method for update
+        const url = userId ? `http://127.0.0.1:5000/users/${userId}` : "http://127.0.0.1:5000/users";
+
+        // Send data to Flask API using POST or PUT
+        fetch(url, {
+          method: method,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(userData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data);
+            document.querySelector("#userForm").reset();
+            document.querySelector("#userId").value = ""; // Reset userId
+            document.querySelector("#submitBtn").textContent = "Add User"; // Reset button text
+            fetchUsers(); // Reload users
+          })
+          .catch((error) => console.error("Error:", error));
+      });
+
+      // Edit user
+      function editUser(id) {
+        fetch(`http://127.0.0.1:5000/users/${id}`)
+          .then((response) => response.json())
+          .then((data) => {
+            document.querySelector("#name").value = data.name;
+            document.querySelector("#email").value = data.email;
+            document.querySelector("#age").value = data.age;
+            document.querySelector("#userId").value = data.id; // Set userId for update
+            document.querySelector("#submitBtn").textContent = "Update User"; // Change button text
+          })
+          .catch((error) => console.error("Error fetching user:", error));
+      }
+
+      // Delete user
+      function deleteUser(id) {
+        fetch(`http://127.0.0.1:5000/users/${id}`, { method: "DELETE" })
+          .then(() => fetchUsers())
+          .catch((error) => console.error("Error deleting user:", error));
+      }
+
+      // Load users on page load
+      document.addEventListener("DOMContentLoaded", fetchUsers);
+    </script>
+  </body>
+</html>
